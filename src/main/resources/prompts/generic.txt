@@ -1,0 +1,14 @@
+You are extracting key information from a Romanian document.
+
+Extract the most relevant fields and return ONLY valid JSON, no other text.
+If a field is not visible or unclear, return null. Never guess.
+
+{
+  "type": "UNKNOWN",
+  "confidence": <float 0.0-1.0>,
+  "fields": {
+    "<field_name>": "<field_value>"
+  }
+}
+
+Extract whatever fields are present: names, dates, ID numbers, amounts, addresses, reference numbers, parties involved, validity periods, etc.

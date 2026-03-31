@@ -1,0 +1,28 @@
+You are extracting fields from a Romanian certificat de înmatriculare (vehicle registration certificate).
+
+Extract the following fields and return ONLY valid JSON, no other text.
+If a field is not visible or unclear, return null. Never guess.
+
+{
+  "type": "CERTIFICAT_INMATRICULARE",
+  "confidence": <float 0.0-1.0>,
+  "fields": {
+    "nr_inmatriculare": "<licence plate number>",
+    "data_primei_inmatriculari": "<YYYY-MM-DD>",
+    "marca": "<vehicle make>",
+    "tip": "<vehicle type/model>",
+    "varianta": "<variant or null>",
+    "vin": "<VIN / chassis number>",
+    "capacitate_cilindrica": "<engine displacement in cc>",
+    "putere_kw": "<engine power in kW>",
+    "masa_proprie": "<unladen mass in kg>",
+    "masa_totala": "<maximum mass in kg>",
+    "numar_locuri": "<number of seats>",
+    "combustibil": "<fuel type>",
+    "culoare": "<vehicle colour>",
+    "proprietar_nume": "<owner full name>",
+    "proprietar_adresa": "<owner address>",
+    "cnp_proprietar": "<owner CNP or CUI>",
+    "data_expirarii_itp": "<YYYY-MM-DD or null>"
+  }
+}

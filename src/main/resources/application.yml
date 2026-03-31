@@ -1,0 +1,63 @@
+micronaut:
+  application:
+    name: docuro
+  security:
+    authentication: bearer
+    intercept-url-map:
+      - pattern: /api/auth/register
+        access:
+          - isAnonymous()
+      - pattern: /api/auth/login
+        access:
+          - isAnonymous()
+    endpoints:
+      login:
+        path: /api/auth/login
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              # min 32 chars; override via JWT_SIGNING_SECRET env var in production
+              secret: "${JWT_SIGNING_SECRET:changeMeInProductionSigningSecret32c}"
+              base64: false
+        encryptions:
+          secret:
+            generator:
+              # DEK is embedded as a claim; JWE ensures the token is opaque
+              secret: "${JWT_ENCRYPTION_SECRET:changeMeInProductionEncryptionSec}"
+              method: "A256GCM"
+              jwe-algorithm: "A256KW"
+  object-storage:
+    aws:
+      default:
+        bucket: "${STORAGE_BUCKET:docuro-documents}"
+
+datasources:
+  default:
+    url: "${DB_URL:jdbc:postgresql://localhost:5432/docuro}"
+    username: "${DB_USER:docuro}"
+    password: "${DB_PASSWORD:docuro}"
+    driver-class-name: org.postgresql.Driver
+    schema-generate: NONE
+    dialect: POSTGRES
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+
+aws:
+  access-key-id: "${MINIO_ACCESS_KEY:minioadmin}"
+  secret-key: "${MINIO_SECRET_KEY:minioadmin}"
+  region: "${AWS_REGION:eu-central-1}"
+  services:
+    s3:
+      endpoint-override: "${MINIO_ENDPOINT:http://localhost:9000}"
+      path-style-access-enabled: true
+
+docuro:
+  gemini:
+    api-key: "${GEMINI_API_KEY}"
+    model: "gemini-flash-lite-latest"
+    endpoint: "https://generativelanguage.googleapis.com"

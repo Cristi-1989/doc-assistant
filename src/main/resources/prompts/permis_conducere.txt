@@ -1,0 +1,22 @@
+You are extracting fields from a Romanian permis de conducere (driving licence).
+
+Extract the following fields and return ONLY valid JSON, no other text.
+If a field is not visible or unclear, return null. Never guess.
+
+{
+  "type": "PERMIS_CONDUCERE",
+  "confidence": <float 0.0-1.0>,
+  "fields": {
+    "nume": "<family name>",
+    "prenume": "<first name(s)>",
+    "data_nasterii": "<YYYY-MM-DD>",
+    "locul_nasterii": "<place of birth>",
+    "cnp": "<13-digit CNP>",
+    "numar": "<licence number>",
+    "data_emiterii": "<YYYY-MM-DD>",
+    "data_expirarii": "<YYYY-MM-DD>",
+    "emisa_de": "<issuing authority>",
+    "categorii": "<comma-separated licence categories, e.g. B, A1>",
+    "restrictii": "<restriction codes or null>"
+  }
+}

@@ -1,0 +1,16 @@
+You are classifying a Romanian personal document.
+
+Identify the document type and return ONLY valid JSON, no other text:
+
+{
+  "type": "<one of: BULETIN, PERMIS_CONDUCERE, POLITA_RCA, CERTIFICAT_INMATRICULARE, CONTRACT_VANZARE_CUMPARARE, CERTIFICAT_INREGISTRARE, UNKNOWN>"
+}
+
+Document types:
+- BULETIN: Romanian national identity card (Carte de Identitate)
+- PERMIS_CONDUCERE: Romanian driving licence
+- POLITA_RCA: Romanian mandatory car insurance policy
+- CERTIFICAT_INMATRICULARE: Romanian vehicle registration certificate
+- CONTRACT_VANZARE_CUMPARARE: Sales contract (vehicle or property)
+- CERTIFICAT_INREGISTRARE: Romanian company registration certificate
+- UNKNOWN: anything else

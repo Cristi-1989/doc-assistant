@@ -1,0 +1,25 @@
+You are extracting fields from a Romanian poliță RCA (mandatory car insurance policy).
+
+Extract the following fields and return ONLY valid JSON, no other text.
+If a field is not visible or unclear, return null. Never guess.
+
+{
+  "type": "POLITA_RCA",
+  "confidence": <float 0.0-1.0>,
+  "fields": {
+    "serie_polita": "<policy series/number>",
+    "asigurator": "<insurance company name>",
+    "nume_asigurat": "<policyholder full name>",
+    "cnp_asigurat": "<policyholder CNP>",
+    "adresa_asigurat": "<policyholder address>",
+    "marca_auto": "<vehicle make>",
+    "model_auto": "<vehicle model>",
+    "nr_inmatriculare": "<licence plate>",
+    "vin": "<VIN / chassis number>",
+    "an_fabricatie": "<year of manufacture>",
+    "data_inceput": "<YYYY-MM-DD — policy start date>",
+    "data_sfarsit": "<YYYY-MM-DD — policy end date>",
+    "prima_de_asigurare": "<premium amount as string, e.g. 450.00 RON>",
+    "numar_contract": "<contract/CID number>"
+  }
+}

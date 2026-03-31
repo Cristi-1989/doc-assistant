@@ -1,0 +1,24 @@
+You are extracting fields from a Romanian Carte de Identitate (buletin/CI).
+
+Extract the following fields and return ONLY valid JSON, no other text.
+If a field is not visible or unclear, return null. Never guess.
+
+{
+  "type": "BULETIN",
+  "confidence": <float 0.0-1.0 indicating overall extraction quality>,
+  "fields": {
+    "cnp": "<13-digit personal identification number>",
+    "serie": "<2 uppercase letters, e.g. RX>",
+    "numar": "<6-digit card number>",
+    "nume": "<family name>",
+    "prenume": "<first name(s)>",
+    "data_nasterii": "<YYYY-MM-DD>",
+    "locul_nasterii": "<place of birth>",
+    "cetatenie": "<e.g. ROMANA>",
+    "sex": "<M or F>",
+    "domiciliu": "<full address as printed>",
+    "data_emiterii": "<YYYY-MM-DD>",
+    "data_expirarii": "<YYYY-MM-DD>",
+    "emisa_de": "<issuing authority, e.g. SPCLEP Sector 1>"
+  }
+}

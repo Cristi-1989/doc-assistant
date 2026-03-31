@@ -1,0 +1,115 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code when working with code in this repository.
+
+## Project Overview
+
+**DocuRo** — a Romanian-focused intelligent document wallet. Users upload personal documents (buletin, RCA policy, vehicle registration, etc.) and the app extracts structured fields using vision LLMs.
+
+Alwyas use @SPEC.md for the full architecture, data model, security model, API design, and milestones.
+
+## Current State
+
+Milestone 1 backend is scaffolded. See SPEC.md for what remains to be implemented.
+
+- `src/` — Micronaut/Kotlin backend (auth, document upload, Gemini extraction, encryption)
+- `SPEC.md` — architecture, data model, security model, API design, milestones
+- `docs/VISION.md` — full product vision and JSON schemas per document type
+- `scripts/` — Python proof-of-concept scripts for Gemini API validation
+- `docker-compose.yml` — PostgreSQL 16 + MinIO
+
+## Running the validation scripts
+
+```bash
+cd scripts
+python -m venv venv && source venv/bin/activate
+pip install google-genai python-docx
+GEMINI_API_KEY=<your_key> python test_model_image.py
+GEMINI_API_KEY=<your_key> python test_model_docx.py
+```
+
+## Running the backend locally
+
+**Prerequisites:** Docker, JDK 21
+
+**`docker-compose.yml`** (already in repo root):
+
+```yaml
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: docuro
+      POSTGRES_USER: docuro
+      POSTGRES_PASSWORD: docuro
+    ports:
+      - "5432:5432"
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO console
+```
+
+```bash
+# 1. Start PostgreSQL + MinIO
+docker compose up -d
+
+# 2. Run the server — Flyway migrations run automatically on startup
+GEMINI_API_KEY=<your_key> ./gradlew run
+
+# Server:        http://localhost:8080
+# MinIO console: http://localhost:9001  (minioadmin / minioadmin)
+```
+
+| Variable | Default (dev) | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | — | Required |
+| `JWT_SIGNING_SECRET` | `changeMeInProductionSigningSecret32c` | Min 32 chars |
+| `JWT_ENCRYPTION_SECRET` | `changeMeInProductionEncryptionSec` | Min 32 chars |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/docuro` | |
+| `DB_USER` / `DB_PASSWORD` | `docuro` / `docuro` | |
+| `MINIO_ENDPOINT` | `http://localhost:9000` | |
+| `STORAGE_BUCKET` | `docuro-documents` | |
+
+## Example: register, login, upload
+
+```bash
+# Register
+curl -s -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@docuro.ro", "password": "MySecurePass123!"}' | jq
+
+# Login — capture JWT (JWE-encrypted, contains session DEK)
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "test@docuro.ro", "password": "MySecurePass123!"}' \
+  | jq -r '.access_token')
+
+# Upload a document (image, PDF, DOCX, or plain text)
+curl -s -X POST http://localhost:8080/api/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/path/to/buletin.jpg" | jq
+
+# Fetch extracted fields (sensitive fields decrypted automatically for this user)
+curl -s http://localhost:8080/api/documents/<documentId> \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# List all documents for the authenticated user
+curl -s http://localhost:8080/api/documents \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+## Code guidelines
+
+- **GraalVM compatibility** — avoid reflection-heavy libraries without GraalVM config; Micronaut uses compile-time DI specifically for this reason.
+- **No hardcoded secrets** — all API keys and credentials must come from environment variables.
+- **Auth on every document endpoint** — all `/api/documents/**` routes must be `@Secured(SecurityRule.IS_AUTHENTICATED)`.
+- **GDPR** — data must remain in `eu-central-1`. Never log CNP or financial field values in plaintext.
+- **First page only (Phase 1)** — PDF extraction uses page 0 only; multi-page support is deferred.
+- **Prompt files** — edit `src/main/resources/prompts/*.txt` to tune extraction quality without recompiling.
