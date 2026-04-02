@@ -20,10 +20,10 @@ import java.util.Base64
 class UserAuthenticationProvider(
     private val userRepository: UserRepository,
     private val encryptionService: EncryptionService,
-) : HttpRequestAuthenticationProvider<HttpRequest<*>> {
+) : HttpRequestAuthenticationProvider<Any> {
 
     override fun authenticate(
-        requestContext: HttpRequest<*>?,
+        requestContext: HttpRequest<Any>?,
         authRequest: AuthenticationRequest<String, String>,
     ): AuthenticationResponse {
         val email = authRequest.identity

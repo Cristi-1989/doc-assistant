@@ -73,7 +73,7 @@ Central interface for all LLM calls. `GeminiExtractionAdapter` is the Milestone 
 **`EncryptionService`** (`src/main/kotlin/com/docuro/security/EncryptionService.kt`)
 All crypto operations: password hashing, Argon2id KEK derivation, DEK wrap/unwrap, AES-256-GCM file and field encryption.
 
-**Document `type` enum:** `BULETIN | PERMIS_CONDUCERE | POLITA_RCA | CERTIFICAT_INMATRICULARE | CONTRACT_VANZARE_CUMPARARE | CERTIFICAT_INREGISTRARE | UNKNOWN`
+**Document types** are rows in `document_types(code, label, description, prompt_file)`. New types are added by inserting a row — no code change or redeployment required.
 
 **`fields` column:** JSONB — shape varies by document type. Sensitive values are individually encrypted before storage (see Security Model).
 
@@ -83,12 +83,12 @@ All crypto operations: password hashing, Argon2id KEK derivation, DEK wrap/unwra
 
 ```
 prompts/
-  classify.txt              ← document type auto-detection
+  classify.txt              ← template; {{DOCUMENT_TYPES}} replaced at runtime from document_types table
   buletin.txt
   permis_conducere.txt
   polita_rca.txt
   certificat_inmatriculare.txt
-  generic.txt               ← fallback for unknown types
+  generic.txt               ← fallback; used when no dedicated prompt_file is configured
 ```
 
 ---
@@ -109,13 +109,27 @@ CREATE TABLE users (
 );
 ```
 
+### Document types
+
+```sql
+CREATE TABLE document_types (
+    code        VARCHAR(100) PRIMARY KEY,         -- e.g. 'BULETIN'
+    label       VARCHAR(255) NOT NULL,            -- human-readable, e.g. 'Identity Card'
+    description TEXT         NOT NULL,            -- used in classify prompt
+    prompt_file VARCHAR(255) NOT NULL,            -- e.g. 'buletin.txt'; 'generic.txt' as fallback
+    created_at  TIMESTAMP    NOT NULL DEFAULT now()
+);
+```
+
+Add a new document type at any time with a single `INSERT` — no code change needed.
+
 ### Documents
 
 ```sql
 CREATE TABLE documents (
     id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id               UUID         NOT NULL REFERENCES users(id),
-    type                  VARCHAR(50),           -- 'BULETIN', 'POLITA_RCA', etc.
+    type                  VARCHAR(100) REFERENCES document_types(code),  -- FK; e.g. 'BULETIN'
     status                VARCHAR(20)  NOT NULL, -- 'processing', 'ready', 'review_needed', 'failed'
     original_filename     VARCHAR(255),
     storage_key           VARCHAR(500),          -- MinIO/S3 key (encrypted file)
@@ -334,11 +348,11 @@ data class DocumentContent(
     val base64Image: String? = null,
     val text: String? = null,
     val mimeType: String,
-    val documentType: DocumentType? = null,  // null = auto-classify
+    val documentType: String? = null,  // null = auto-classify; uppercase code e.g. "BULETIN"
 )
 
 data class ExtractionResult(
-    val documentType: DocumentType,
+    val documentType: String,          // uppercase code from document_types.code
     val fields: Map<String, Any?>,
     val confidence: Double,
     val rawResponse: String,
@@ -366,6 +380,7 @@ data class ExtractionResult(
 - [x] Scaffold Micronaut project (Kotlin, KSP, Gradle)
 - [x] Docker Compose (PostgreSQL + MinIO)
 - [x] Flyway migration: users + documents tables (with encryption columns)
+- [x] Flyway migration: `document_types` table + FK from `documents.type`; classify prompt populated dynamically from DB
 - [x] `EncryptionService` — BCrypt, Argon2id, AES-256-GCM
 - [x] `POST /api/auth/register` — user creation + DEK generation
 - [x] `POST /api/auth/login` — credential validation + DEK unwrap + JWE token

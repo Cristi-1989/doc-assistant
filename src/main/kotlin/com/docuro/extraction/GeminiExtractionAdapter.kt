@@ -1,5 +1,7 @@
 package com.docuro.extraction
 
+import com.docuro.domain.DocumentTypeEntity
+import com.docuro.repository.DocumentTypeRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.micronaut.context.annotation.Value
 import io.micronaut.http.HttpRequest
@@ -14,26 +16,37 @@ class GeminiExtractionAdapter(
     @Value("\${docuro.gemini.api-key}") private val apiKey: String,
     @Value("\${docuro.gemini.model}") private val model: String,
     private val objectMapper: ObjectMapper,
+    private val documentTypeRepository: DocumentTypeRepository,
 ) : DocumentExtractionPort {
 
     private val promptLoader = PromptLoader()
 
     override fun extract(content: DocumentContent): ExtractionResult {
         val documentType = content.documentType ?: classify(content)
-        val prompt = promptLoader.load(documentType)
+        val promptFile = documentTypeRepository.findById(documentType)
+            .map { it.promptFile }
+            .orElse("generic.txt")
+        val prompt = promptLoader.load(promptFile)
         val request = buildRequest(content, prompt)
         val response = callGemini(request)
         return parseResponse(response, documentType)
     }
 
-    private fun classify(content: DocumentContent): DocumentType {
-        val classifyPrompt = promptLoader.load(null) // classify.txt
+    private fun classify(content: DocumentContent): String {
+        val allTypes = documentTypeRepository.findAll().toList()
+        val classifyPrompt = buildClassifyPrompt(allTypes)
         val request = buildRequest(content, classifyPrompt)
         val response = callGemini(request)
-        val text = response.text() ?: return DocumentType.UNKNOWN
+        val text = response.text() ?: return "UNKNOWN"
         return runCatching {
-            DocumentType.valueOf(objectMapper.readTree(text).get("type").asText().uppercase())
-        }.getOrDefault(DocumentType.UNKNOWN)
+            objectMapper.readTree(text).get("type").asText().uppercase()
+        }.getOrDefault("UNKNOWN")
+    }
+
+    private fun buildClassifyPrompt(types: List<DocumentTypeEntity>): String {
+        val template = promptLoader.load("classify.txt")
+        val typeList = types.joinToString("\n") { "- ${it.code}: ${it.description}" }
+        return template.replace("{{DOCUMENT_TYPES}}", typeList)
     }
 
     private fun buildRequest(content: DocumentContent, prompt: String): GeminiRequest {
@@ -58,7 +71,7 @@ class GeminiExtractionAdapter(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun parseResponse(response: GeminiResponse, documentType: DocumentType): ExtractionResult {
+    private fun parseResponse(response: GeminiResponse, documentType: String): ExtractionResult {
         val raw = response.text() ?: "{}"
         val tree = runCatching { objectMapper.readTree(raw) }.getOrNull()
         val fields = runCatching {
@@ -71,16 +84,8 @@ class GeminiExtractionAdapter(
 
 /** Loads prompt .txt files from src/main/resources/prompts/. */
 private class PromptLoader {
-    fun load(type: DocumentType?): String {
-        val filename = when (type) {
-            DocumentType.BULETIN -> "buletin.txt"
-            DocumentType.PERMIS_CONDUCERE -> "permis_conducere.txt"
-            DocumentType.POLITA_RCA -> "polita_rca.txt"
-            DocumentType.CERTIFICAT_INMATRICULARE -> "certificat_inmatriculare.txt"
-            else -> if (type == null) "classify.txt" else "generic.txt"
-        }
-        return PromptLoader::class.java.getResourceAsStream("/prompts/$filename")
+    fun load(filename: String): String =
+        PromptLoader::class.java.getResourceAsStream("/prompts/$filename")
             ?.bufferedReader()?.readText()
             ?: error("Prompt file not found: $filename")
-    }
 }

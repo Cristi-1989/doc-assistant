@@ -37,7 +37,7 @@ GEMINI_API_KEY=<your_key> python test_model_docx.py
 ```yaml
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18
     environment:
       POSTGRES_DB: docuro
       POSTGRES_USER: docuro
@@ -104,6 +104,42 @@ curl -s http://localhost:8080/api/documents/<documentId> \
 curl -s http://localhost:8080/api/documents \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
+
+## Testing guidelines
+
+- **Unit tests** — use MockK for mocking; use a real `EncryptionService` instance (no external deps) rather than mocking crypto.
+- **Integration tests requiring PostgreSQL or S3/MinIO** — always use Testcontainers. Never assume Docker Compose is running. The pattern is:
+  1. Add `org.testcontainers:postgresql` and/or a `GenericContainer("minio/minio")` in the test companion object, started with `.also { it.start() }` so they are up before Micronaut's JUnit extension runs.
+  2. Implement `TestPropertyProvider` to supply the dynamic `datasources.default.url`, `aws.services.s3.endpoint-override`, etc., derived from the running containers.
+  3. Annotate the test class with `@MicronautTest` and `@TestInstance(TestInstance.Lifecycle.PER_CLASS)`.
+
+  ```kotlin
+  @MicronautTest
+  @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+  class MyIntegrationTest : TestPropertyProvider {
+      companion object {
+          val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16")
+              .withDatabaseName("docuro").withUsername("docuro").withPassword("docuro")
+              .also { it.start() }
+          val minio: GenericContainer<*> = GenericContainer("minio/minio:latest")
+              .withExposedPorts(9000)
+              .withEnv("MINIO_ROOT_USER", "minioadmin").withEnv("MINIO_ROOT_PASSWORD", "minioadmin")
+              .withCommand("server /data").also { it.start() }
+      }
+      override fun getProperties() = mapOf(
+          // Build the JDBC URL manually — postgres.jdbcUrl can return a partial value if the
+          // env var DB_URL is set to an empty string and the property is read before the
+          // container is fully up. getMappedPort(5432) is always reliable after start().
+          "datasources.default.url"           to
+              "jdbc:postgresql://${postgres.host}:${postgres.getMappedPort(5432)}/${postgres.databaseName}",
+          "datasources.default.username"      to postgres.username,
+          "datasources.default.password"      to postgres.password,
+          "aws.services.s3.endpoint-override" to "http://${minio.host}:${minio.getMappedPort(9000)}",
+          "docuro.gemini.api-key"             to "test-placeholder",
+      )
+  }
+  ```
+- Do **not** use `@Testcontainers` / `@Container` JUnit annotations when combined with `@MicronautTest` — the extension ordering is not guaranteed; start containers in the companion object init block instead.
 
 ## Code guidelines
 

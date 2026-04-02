@@ -4,25 +4,15 @@ import io.micronaut.serde.annotation.Serdeable
 
 // ── Port models ──────────────────────────────────────────────────────────────
 
-enum class DocumentType {
-    BULETIN,
-    PERMIS_CONDUCERE,
-    POLITA_RCA,
-    CERTIFICAT_INMATRICULARE,
-    CONTRACT_VANZARE_CUMPARARE,
-    CERTIFICAT_INREGISTRARE,
-    UNKNOWN,
-}
-
 data class DocumentContent(
     val base64Image: String? = null,  // for image / PDF inputs
     val text: String? = null,          // for plain-text / DOCX inputs
     val mimeType: String,
-    val documentType: DocumentType? = null,  // null = auto-classify
+    val documentType: String? = null,  // null = auto-classify; uppercase code e.g. "BULETIN"
 )
 
 data class ExtractionResult(
-    val documentType: DocumentType,
+    val documentType: String,          // uppercase code from document_types.code
     val fields: Map<String, Any?>,
     val confidence: Double,
     val rawResponse: String,

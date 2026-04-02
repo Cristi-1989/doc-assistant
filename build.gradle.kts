@@ -54,14 +54,48 @@ dependencies {
 
     // Logging
     runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("org.yaml:snakeyaml")
 
     // Test
     testImplementation("io.micronaut:micronaut-http-client")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.4"))
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.yaml:snakeyaml")
 }
 
 application {
     mainClass = "com.docuro.ApplicationKt"
+}
+
+tasks.named<Test>("test") {
+    // Testcontainers on macOS Docker Desktop: the DockerDesktopClientProviderStrategy uses the
+    // CLI proxy socket, which can return 400 on some versions. Set DOCKER_HOST explicitly to the
+    // standard Docker Desktop daemon socket (~/.docker/run/docker.sock) if the default
+    // /var/run/docker.sock doesn't exist, so Testcontainers uses the UnixSocket strategy instead.
+    if (System.getenv("DOCKER_HOST") == null) {
+        val defaultSocket = File("/var/run/docker.sock")
+        val macSocket = File("${System.getProperty("user.home")}/.docker/run/docker.sock")
+        if (!defaultSocket.exists() && macSocket.exists()) {
+            environment("DOCKER_HOST", "unix://${macSocket.absolutePath}")
+        }
+    }
+
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+        afterSuite(KotlinClosure2({ desc: TestDescriptor, result: TestResult ->
+            if (desc.parent == null) {
+                println("\nTest summary: ${result.testCount} tests — " +
+                    "${result.successfulTestCount} passed, " +
+                    "${result.failedTestCount} failed, " +
+                    "${result.skippedTestCount} skipped " +
+                    "(${result.resultType})")
+            }
+        }))
+    }
 }
 
 java {

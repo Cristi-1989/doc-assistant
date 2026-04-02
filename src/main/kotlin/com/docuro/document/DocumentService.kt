@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.micronaut.objectstorage.aws.AwsS3Operations
 import io.micronaut.objectstorage.request.UploadRequest
 import jakarta.inject.Singleton
+import org.apache.pdfbox.Loader
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.rendering.PDFRenderer
 import org.apache.poi.xwpf.usermodel.XWPFDocument
@@ -63,7 +64,7 @@ class DocumentService(
             val encryptedFields = encryptFields(result.fields, dek)
             doc = documentRepository.update(
                 doc.copy(
-                    type = result.documentType.name.lowercase(),
+                    type = result.documentType,
                     status = "ready",
                     extractionConfidence = result.confidence,
                     fields = objectMapper.writeValueAsString(encryptedFields),
@@ -91,7 +92,7 @@ class DocumentService(
             DocumentContent(base64Image = Base64.getEncoder().encodeToString(bytes), mimeType = mimeType)
 
         mimeType == "application/pdf" -> {
-            val image = PDDocument.load(bytes).use { pdf ->
+            val image = Loader.loadPDF(bytes).use { pdf ->
                 PDFRenderer(pdf).renderImageWithDPI(0, 200f)
             }
             val out = ByteArrayOutputStream()
