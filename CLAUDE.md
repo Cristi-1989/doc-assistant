@@ -149,3 +149,4 @@ curl -s http://localhost:8080/api/documents \
 - **GDPR** — data must remain in `eu-central-1`. Never log CNP or financial field values in plaintext.
 - **First page only (Phase 1)** — PDF extraction uses page 0 only; multi-page support is deferred.
 - **Prompt files** — edit `src/main/resources/prompts/*.txt` to tune extraction quality without recompiling.
+- **Environment variables** - we use direnv with .env files to configure environment-specific variables, including sensitive data

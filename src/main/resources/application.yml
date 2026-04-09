@@ -21,7 +21,7 @@ micronaut:
               # min 32 chars; override via JWT_SIGNING_SECRET env var in production
               secret: "${JWT_SIGNING_SECRET:changeMeInProductionSigningSecret32c}"
               base64: false
-        encryptions:
+        encryption:
           secret:
             generator:
               # DEK is embedded as a claim; JWE ensures the token is opaque

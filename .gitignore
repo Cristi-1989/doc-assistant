@@ -1,1 +1,4 @@
 **/venv/
+
+# Local secrets — never commit
+.env.local
