@@ -67,6 +67,19 @@ GEMINI_API_KEY=<your_key> ./gradlew run
 # MinIO console: http://localhost:9001  (minioadmin / minioadmin)
 ```
 
+**First-time MinIO setup — create the `docuro-documents` bucket:**
+
+```bash
+# Option A: MinIO console
+# 1. Open http://localhost:9001
+# 2. Log in with minioadmin / minioadmin
+# 3. Buckets → Create Bucket → name: docuro-documents → Create
+
+# Option B: mc CLI
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb local/docuro-documents
+```
+
 | Variable | Default (dev) | Notes |
 |---|---|---|
 | `GEMINI_API_KEY` | — | Required |
